@@ -102,34 +102,30 @@ def mrdump_source(s):
 def ksun_patch_memory(s):
     if "copy_to_kernel_nofault(" not in s:
         raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
-
     nl = chr(10)
-    uaccess_include = "#include <linux/uaccess.h>"
-    if uaccess_include not in s:
+    uaccess = "#include <linux/uaccess.h>"
+    if uaccess not in s:
         anchor = '#include "patch_memory.h"'
         if anchor in s:
-            s = s.replace(anchor, anchor + nl + uaccess_include, 1)
+            s = s.replace(anchor, anchor + nl + uaccess, 1)
         else:
             pos = s.find("#include")
             if pos < 0:
                 raise SystemExit("KernelSU-Next patch_memory.c: no include insertion point")
-            s = s[:pos] + uaccess_include + nl + s[pos:]
-
-    macro_lines = [
-        "/* Linux 4.19 compatibility: copy_to_kernel_nofault was probe_kernel_write. */",
+            s = s[:pos] + uaccess + nl + s[pos:]
+    macro = nl.join([
+        "#include <linux/version.h>",
+        "/* Linux 4.19: copy_to_kernel_nofault was probe_kernel_write. */",
         "#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)",
         "#define copy_to_kernel_nofault(dst, src, size) " + chr(92),
         "    probe_kernel_write((dst), (src), (size))",
         "#endif",
-    ]
-    macro = nl.join(macro_lines) + nl
+    ])
     if "#define copy_to_kernel_nofault(" not in s:
-        version_include = "#include <linux/version.h>"
-        if version_include not in s:
-            s = s.replace(uaccess_include, uaccess_include + nl + version_include, 1)
-        s = s.replace(version_include, version_include + nl + nl + macro, 1)
-
-    if s.index(uaccess_include) > s.index("#define copy_to_kernel_nofault("):
+        # Insert the version header and macro immediately after uaccess;
+        # never after an earlier, unrelated version.h include.
+        s = s.replace(uaccess, uaccess + nl + macro, 1)
+    if s.index(uaccess) > s.index("#define copy_to_kernel_nofault("):
         raise SystemExit("KernelSU-Next patch_memory.c: uaccess include must precede compatibility macro")
     if "probe_kernel_write((dst), (src), (size))" not in s:
         raise SystemExit("KernelSU-Next patch_memory.c: compatibility macro was not inserted")
