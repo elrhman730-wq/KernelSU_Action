@@ -1,16 +1,16 @@
-name: A13VE KernelSU-Next + SUSFS 2.4.0
+name: A13VE KernelSU-Next Legacy + SUSFS v1.5.5
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - a13ve-ksun-legacy-fix
+      - main
 
 permissions:
   contents: read
 
 concurrency:
-  group: a13ve-ksun-legacy-fix-${{ github.ref }}
+  group: a13ve-kernelsu-next-susfs-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout build scripts
         uses: actions/checkout@v4
         with:
-          ref: a13ve-ksun-legacy-fix
+          ref: main
 
       - name: Install build dependencies
         run: |
@@ -39,10 +39,10 @@ jobs:
       - name: Fetch A13VE kernel source
         run: bash scripts/source.sh
 
-      - name: Install KernelSU-Next Legacy
+      - name: Install KernelSU-Next (legacy branch)
         run: bash scripts/kernelsu.sh
 
-      - name: Apply SUSFS and kernel compatibility patches
+      - name: Apply SUSFS v1.5.5 and Linux 4.19 compatibility patches
         run: bash scripts/patches.sh all
 
       - name: Fetch toolchains
@@ -55,13 +55,13 @@ jobs:
         run: |
           bash scripts/package.sh all
           cd AnyKernel3
-          zip -qr "${WORKSPACE}/A13VE-KernelSU-Next-SUSFS-2.4.0.zip" .
+          zip -qr "${WORKSPACE}/A13VE-KernelSU-Next-SUSFS-v1.5.5.zip" .
 
       - name: Upload flashable kernel
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: A13VE-KernelSU-Next-SUSFS-2.4.0
+          name: A13VE-KernelSU-Next-SUSFS-v1.5.5
           path: A13VE-KernelSU-Next-SUSFS-2.4.0.zip
           if-no-files-found: error
           retention-days: 14
