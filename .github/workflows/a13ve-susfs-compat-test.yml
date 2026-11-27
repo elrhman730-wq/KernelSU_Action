@@ -1,0 +1,41 @@
+name: A13VE SUSFS 2.4.0 compatibility probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - a13ve-ksun-legacy-fix
+
+permissions:
+  contents: read
+
+jobs:
+  susfs-compatibility:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout build repository
+        uses: actions/checkout@v4
+        with:
+          ref: a13ve-ksun-legacy-fix
+
+      - name: Install patch tools
+        run: sudo apt-get update && sudo apt-get install -y git patch
+
+      - name: Checkout exact A13VE kernel source
+        run: |
+          git clone --depth=1 --branch legion-mt6768 https://github.com/AlfCraft07/android_kernel_samsung_mt6768-k419.git kernel
+
+      - name: Fetch candidate SUSFS 2.4.0 patch
+        run: |
+          curl -fL --retry 3 \
+            https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/mainline/Patches/Patch/susfs_patch_to_4.19.patch \
+            -o /tmp/susfs_patch_to_4.19.patch
+          grep -q 'SUSFS_VERSION "v2.4.0"' /tmp/susfs_patch_to_4.19.patch
+          echo "Confirmed candidate patch identifies itself as SUSFS v2.4.0"
+
+      - name: Validate patch applicability without modifying source
+        run: |
+          cd kernel
+          git apply --check /tmp/susfs_patch_to_4.19.patch
+          echo "PASS: SUSFS v2.4.0 patch applies cleanly to Legion mt6768 4.19 source"
