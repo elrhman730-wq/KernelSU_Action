@@ -45,7 +45,7 @@ def insert_after_once(rel, anchor, addition, marker):
 # list, so place susfs.o after the complete obj-y list instead of line numbers.
 insert_after_once(
     "fs/Makefile",
-    "\t\tfs_context.o fs_parser.o\n",
+    "fs_context.o fs_parser.o\n",
     "\nobj-$(CONFIG_KSU_SUSFS) += susfs.o\n",
     "obj-$(CONFIG_KSU_SUSFS) += susfs.o",
 )
