@@ -102,10 +102,18 @@ def mrdump_source(s):
 def ksun_patch_memory(s):
     if "copy_to_kernel_nofault" not in s:
         raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
-    if "#define copy_to_kernel_nofault" in s:
-        return s
-    anchor = '#include "patch_memory.h"'
-    compat = '''
+
+    # Ensure the legacy probe_kernel_write() declaration is visible before
+    # the compatibility macro is expanded on Linux 4.19.
+    include_anchor = '#include "patch_memory.h"'
+    if '#include <linux/uaccess.h>' not in s:
+        if include_anchor not in s:
+            raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
+        s = s.replace(include_anchor,
+                      include_anchor + '\\n#include <linux/uaccess.h>', 1)
+
+    if "#define copy_to_kernel_nofault" not in s:
+        compat = '''
 #include <linux/version.h>
 
 /* copy_to_kernel_nofault() was named probe_kernel_write() before 5.8. */
@@ -114,9 +122,10 @@ def ksun_patch_memory(s):
     probe_kernel_write((dst), (src), (size))
 #endif
 '''
-    if anchor not in s:
-        raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
-    return s.replace(anchor, anchor + compat, 1)
+        if include_anchor not in s:
+            raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
+        s = s.replace(include_anchor, include_anchor + compat, 1)
+    return s
 
 def cred_source(s):
     # struct cred::usage is atomic_long_t in this vendor tree; the atomic_t
