@@ -110,7 +110,7 @@ def ksun_patch_memory(s):
         if include_anchor not in s:
             raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
         s = s.replace(include_anchor,
-                      include_anchor + '\\n#include <linux/uaccess.h>', 1)
+                      include_anchor + "\\n#include <linux/uaccess.h>", 1)
 
     if "#define copy_to_kernel_nofault" not in s:
         compat = '''
