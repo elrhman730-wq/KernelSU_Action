@@ -1,4 +1,4 @@
-name: A13VE KernelSU-Next + SUSFS 2.4.0
+name: A13VE SukiSU Nova + SUSFS 1.5.5 (Linux 4.19)
 
 on:
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
       - name: Fetch toolchains
         run: bash scripts/toolchain.sh
 
-      - name: Install KernelSU-Next Legacy
+      - name: Install SukiSU Nova builtin (SUSFS-enabled)
         run: bash scripts/kernelsu.sh
 
       - name: Apply SUSFS and kernel compatibility patches
@@ -54,13 +54,13 @@ jobs:
         run: |
           bash scripts/package.sh all
           cd AnyKernel3
-          zip -qr "${WORKSPACE}/A13VE-KernelSU-Next-SUSFS-2.4.0.zip" .
+          zip -qr "${WORKSPACE}/A13VE-SukiSU-Nova-SUSFS-v1.5.5.zip" .
 
       - name: Upload flashable kernel
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: A13VE-KernelSU-Next-SUSFS-2.4.0
+          name: A13VE-SukiSU-Nova-SUSFS-v1.5.5
           path: A13VE-KernelSU-Next-SUSFS-2.4.0.zip
           if-no-files-found: error
           retention-days: 14
