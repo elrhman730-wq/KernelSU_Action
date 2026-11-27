@@ -129,6 +129,42 @@ def cred_source(s):
         raise SystemExit("kernel/cred.c: expected credential refcount callsites not found")
     return s
 
+def mtk_unused_variables(s):
+    old = "static unsigned int gConnAdpDbgLvl = CONNADP_LOG_INFO;"
+    new = "static unsigned int gConnAdpDbgLvl __maybe_unused = CONNADP_LOG_INFO;"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("wmt_build_in_adapter.c: debug-level variable annotation failed")
+    if new not in s:
+        raise SystemExit("wmt_build_in_adapter.c: expected debug-level variable not found")
+    return s
+
+def wlan_chip_id(s):
+    old = "uint32_t chip_id = prChipInfo->chip_id;"
+    new = "uint32_t chip_id __maybe_unused = prChipInfo->chip_id;"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("wlan_lib.c: chip_id unused-variable annotation failed")
+    if new not in s:
+        raise SystemExit("wlan_lib.c: expected chip_id declaration not found")
+    return s
+
+def dpmaif_pointer_format(s):
+    replacements = {
+        "(u32)data_64ptr": "(u32)(unsigned long)data_64ptr",
+        "(u32)data_8ptr": "(u32)(unsigned long)data_8ptr",
+    }
+    for old, new in replacements.items():
+        if old in s:
+            s = s.replace(old, new)
+        if old in s:
+            raise SystemExit("ccci_hif_dpmaif.c: pointer-to-u32 cast remains")
+        if new not in s:
+            raise SystemExit("ccci_hif_dpmaif.c: expected debug pointer cast not found")
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -149,6 +185,9 @@ def v4l2_m2m(s):
     raise SystemExit("v4l2-mem2mem.c: cannot locate prepare_buf call")
 
 edit("drivers/misc/mediatek/aee/mrdump/mboot_params.c", mrdump_source)
+edit("drivers/misc/mediatek/connectivity/common/wmt_build_in_adapter.c", mtk_unused_variables)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_lib.c", wlan_chip_id)
+edit("drivers/misc/mediatek/eccci/hif/ccci_hif_dpmaif.c", dpmaif_pointer_format)
 edit("drivers/kernelsu/hook/patch_memory.c", ksun_patch_memory)
 edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
 
