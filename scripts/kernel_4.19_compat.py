@@ -86,6 +86,61 @@ page_lock_anon_vma_read_compat(struct page *page,
         s = s.replace(anchor, anchor + helper, 1)
     return s.replace(old, new)
 
+
+def mrdump_source(s):
+    # This vendor file uses a one-argument array-size helper. Keep it local
+    # instead of redefining the kernel's two-argument overflow-safe array_size.
+    s = s.replace("#define array_size(x) (sizeof(x) / sizeof((x)[0]))",
+                  "#define mboot_array_size(x) (sizeof(x) / sizeof((x)[0]))")
+    s = s.replace("array_size(aee_rr_", "mboot_array_size(aee_rr_")
+    if "#define array_size(x)" in s:
+        raise SystemExit("mboot_params.c: conflicting array_size macro remains")
+    if "mboot_array_size(aee_rr_" not in s:
+        raise SystemExit("mboot_params.c: expected array-size callsites not found")
+    return s
+
+def ksun_patch_memory(s):
+    if "copy_to_kernel_nofault" not in s:
+        raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
+    if "#define copy_to_kernel_nofault" in s:
+        return s
+    anchor = '#include "patch_memory.h"'
+    compat = '''
+#include <linux/version.h>
+
+/* copy_to_kernel_nofault() was named probe_kernel_write() before 5.8. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#define copy_to_kernel_nofault(dst, src, size) \\
+    probe_kernel_write((dst), (src), (size))
+#endif
+'''
+    if anchor not in s:
+        raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
+    return s.replace(anchor, anchor + compat, 1)
+
+def v4l2_m2m(s):
+    old = """struct video_device *vdev = video_devdata(file);
+\tstruct vb2_queue *vq;
+\tint ret;
+
+\tvq = v4l2_m2m_get_vq(m2m_ctx, buf->type);
+\tret = vb2_prepare_buf(vq, buf, NULL);"""
+    new = """struct video_device *vdev = video_devdata(file);
+\tstruct vb2_queue *vq;
+\tint ret;
+
+\tvq = v4l2_m2m_get_vq(m2m_ctx, buf->type);
+\tret = vb2_prepare_buf(vq, vdev->v4l2_dev->mdev, buf);"""
+    if old in s:
+        return s.replace(old, new, 1)
+    if "vb2_prepare_buf(vq, vdev->v4l2_dev->mdev, buf)" in s:
+        return s
+    raise SystemExit("v4l2-mem2mem.c: cannot locate prepare_buf call")
+
+edit("drivers/misc/mediatek/aee/mrdump/mboot_params.c", mrdump_source)
+edit("drivers/kernelsu/hook/patch_memory.c", ksun_patch_memory)
+edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
+
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
 edit("mm/rmap.c", rmap_source)
