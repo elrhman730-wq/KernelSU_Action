@@ -50,8 +50,7 @@ for rel, pairs in changes.items():
     path = root / rel
     data = path.read_text()
     for old, new in pairs:
-        marker = new.splitlines()[0]
-        if marker in data and (rel != "fs/exec.c" or "ksu_handle_execveat" in data):
+        if new in data:
             continue
         if old not in data:
             # An already-integrated hook may have a different but valid placement.
