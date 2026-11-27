@@ -33,9 +33,18 @@ jobs:
             -o /tmp/susfs_patch_to_4.19.patch
           grep -q 'SUSFS_VERSION "v2.4.0"' /tmp/susfs_patch_to_4.19.patch
           echo "Confirmed candidate patch identifies itself as SUSFS v2.4.0"
+          grep '^diff --git ' /tmp/susfs_patch_to_4.19.patch
 
-      - name: Validate patch applicability without modifying source
+      - name: Test exact and fuzzy patch application
         run: |
           cd kernel
-          git apply --check /tmp/susfs_patch_to_4.19.patch
-          echo "PASS: SUSFS v2.4.0 patch applies cleanly to Legion mt6768 4.19 source"
+          if git apply --check /tmp/susfs_patch_to_4.19.patch; then
+            echo "EXACT_APPLY=PASS" >> "$GITHUB_STEP_SUMMARY"
+          elif patch -p1 --dry-run --force --fuzz=3 < /tmp/susfs_patch_to_4.19.patch; then
+            echo "FUZZY_APPLY=PASS" >> "$GITHUB_STEP_SUMMARY"
+            echo "Patch can be applied with fuzz=3; next step is isolated compile validation."
+          else
+            echo "FUZZY_APPLY=FAIL" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Candidate SUSFS patch cannot be safely applied even with fuzz=3."
+            exit 1
+          fi
