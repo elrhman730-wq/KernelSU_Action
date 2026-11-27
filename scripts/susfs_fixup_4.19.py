@@ -85,7 +85,7 @@ replace_once(
 #endif
 \tif (child->d_inode)
 """,
-    "INODE_STATE_SUS_PATH",
+    "error = inode_permission2(mnt, dir, MAY_WRITE | MAY_EXEC);",
 )
 
 # fs/namespace.c: vendor source has fs_context plus KDP_NS conditional code.
@@ -130,7 +130,7 @@ bool susfs_is_auto_add_try_umount_for_bind_mount_enabled = true;
 #endif
 
 """,
-    "susfs_is_current_ksu_domain",
+    "static DEFINE_IDA(susfs_mnt_id_ida);",
 )
 
 # alloc_vfsmnt(): allow SUSFS mounts to use the separate high mount-ID range.
