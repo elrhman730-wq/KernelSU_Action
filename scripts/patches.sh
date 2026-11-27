@@ -54,52 +54,35 @@ susfs_apply() {
 		info "kernel ${kver} -> susfs branch '${branch}'"
 	fi
 
-	ref_exists "$repo" "$branch" \
-		|| die "susfs4ksu has no branch '${branch}'.
-       Available: $(git ls-remote --heads "$repo" | awk '{print $2}' | sed 's@refs/heads/@@' | tr '\n' ' ')"
+	# This repository is specifically built against the Samsung fs_context
+	# layout in Linux 4.19.325. Keep the version/branch explicit: v1.5.5 is the
+	# maintained non-GKI SUSFS line for 4.19; GKI v2.x patches are not applicable.
+	[ "$kver" = "4.19" ] || die "the bundled Samsung SUSFS port only supports Linux 4.19 (found ${kver})"
+	[ "$branch" = "kernel-4.19" ] || die "SUSFS branch must be kernel-4.19 for this Linux 4.19 port"
 
-	local susfs_dir="${WORKSPACE}/susfs4ksu"
-	rm -rf "$susfs_dir"
-	retry 3 git clone -q --depth=1 -b "$branch" "$repo" "$susfs_dir" \
-		|| die "failed to clone ${repo} @ ${branch}"
-
-	local kp="${susfs_dir}/kernel_patches"
-	[ -d "$kp" ] || die "unexpected susfs4ksu layout: ${kp} missing"
-
-	# 1. The pinned Samsung fs_context patch carries the v1.5.5 kernel
-	#    sources as well as the VFS hooks. The generic kernel-4.19 patch is
-	#    based on vanilla VFS and does not match this vendor tree's backports.
+	# Kernel-side patch includes the SUSFS v1.5.5 sources and Samsung VFS hooks.
+	# Its matching KernelSU-Next patch adds the SUSFS feature/supercall layer to
+	# the modular kernel/ tree; the old official KernelSU patch targets a flat
+	# pre-modular layout and must not be used here.
 	local kernel_patch="${REPO_ROOT}/patches/susfs-v1.5.5-samsung-4.19.patch"
+	local ksu_patch="${REPO_ROOT}/patches/kernelsu-next-susfs-v1.5.5.patch"
 	[ -f "$kernel_patch" ] || die "Samsung SUSFS patch missing: ${kernel_patch}"
+	[ -f "$ksu_patch" ] || die "KernelSU-Next SUSFS patch missing: ${ksu_patch}"
 
-	# 2. Apply the clean hunks, then finish the small MTK/KDP-aware insertion
-	#    points. The fixup script validates every expected marker and refuses
-	#    to continue if this source tree differs from the reviewed baseline.
 	( cd "$KERNEL_DIR" && apply_patch "$kernel_patch" 1 ) \
 		|| die "the Samsung fs_context SUSFS v1.5.5 patch did not apply cleanly"
 	python3 "${REPO_ROOT}/scripts/susfs_fixup_4.19.py" "$KERNEL_DIR" \
 		|| die "the Samsung fs_context SUSFS v1.5.5 fixups failed"
 
-	# 3. Patch the KernelSU side -- but only when the variant does not already
-	#    ship SUSFS support. SukiSU-Ultra's 'builtin' branch, for instance,
-	#    declares CONFIG_KSU_SUSFS itself; applying the patch on top conflicts.
 	local ksu_dir="${KERNEL_DIR}/${KSU_DIR:-KernelSU}"
-	local ksu_patch="${kp}/KernelSU/10_enable_susfs_for_ksu.patch"
-
 	if susfs_is_bundled; then
-		info "${KSU_NAME:-the selected variant} already bundles SUSFS at ref '${KSU_REF_RESOLVED:-}'; skipping 10_enable_susfs_for_ksu.patch"
+		info "${KSU_NAME:-the selected variant} already bundles SUSFS at ref '${KSU_REF_RESOLVED:-}'; skipping KSU-Next SUSFS patch"
 	elif [ ! -d "$ksu_dir" ]; then
-		warn "KernelSU directory ${ksu_dir} not found; skipping the KernelSU-side SUSFS patch"
-	elif [ ! -f "$ksu_patch" ]; then
-		warn "branch ${branch} ships no KernelSU/10_enable_susfs_for_ksu.patch; skipping"
+		die "KernelSU-Next directory ${ksu_dir} not found"
 	else
 		( cd "$ksu_dir" && apply_patch "$ksu_patch" 1 ) || {
-			warn "the KernelSU-side SUSFS patch did not apply."
-			warn "susfs4ksu's non-GKI branches were last updated in early 2025 and still"
-			warn "target the old flat KernelSU layout; modern forks have since moved to a"
-			warn "modular kernel/ tree. Try a variant/ref whose layout matches, or a fork"
-			warn "that bundles SUSFS itself (e.g. KSU_VARIANT=sukisu-ultra KSU_REF=builtin)."
-			die "SUSFS integration failed"
+			warn "KernelSU-Next native SUSFS v1.5.5 patch did not apply cleanly"
+			die "KernelSU-Next SUSFS integration failed"
 		}
 	fi
 
