@@ -312,7 +312,7 @@ hooks_patch_apply() {
 	# Fall back to the in-repo sed script, which is what this action shipped
 	# historically and still works for the 4.9-5.4 KernelSU 0.9.x hook API.
 	info "falling back to the bundled legacy hook script"
-	( cd "$KERNEL_DIR" && bash "${REPO_ROOT}/patches/legacy_ksu_hooks.sh" )
+	python3 "${REPO_ROOT}/scripts/ksun_manual_hooks_4.19.py" "$KERNEL_DIR"
 	endgroup
 }
 
