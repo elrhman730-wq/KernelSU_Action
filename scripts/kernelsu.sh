@@ -260,7 +260,15 @@ ksu_hook_configs() {
 		kconf_enable "$defconfig" CONFIG_KSU_TRACEPOINT_HOOK
 		;;
 	syscall)
-		kconf_enable "$defconfig" CONFIG_KSU_SYSCALL_HOOK
+		case "$variant" in
+			kernelsu-next)
+				# KernelSU-Next legacy names this native non-GKI hook explicitly.
+				kconf_enable "$defconfig" CONFIG_KSU_SYSCALL_TABLE_HOOK
+				;;
+			*)
+				kconf_enable "$defconfig" CONFIG_KSU_SYSCALL_HOOK
+				;;
+		esac
 		;;
 	esac
 }
