@@ -103,31 +103,31 @@ def ksun_patch_memory(s):
     if "copy_to_kernel_nofault(" not in s:
         raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
 
-    # Linux 4.19 declares probe_kernel_write() in linux/uaccess.h.
+    nl = chr(10)
     uaccess_include = "#include <linux/uaccess.h>"
     if uaccess_include not in s:
-        include_anchor = '#include "patch_memory.h"'
-        if include_anchor in s:
-            s = s.replace(include_anchor, include_anchor + "\\n" + uaccess_include, 1)
+        anchor = '#include "patch_memory.h"'
+        if anchor in s:
+            s = s.replace(anchor, anchor + nl + uaccess_include, 1)
         else:
-            # Header layout differs between KSUN revisions; add the include
-            # immediately after the initial comment/header block.
-            first_include = s.find("#include")
-            if first_include < 0:
+            pos = s.find("#include")
+            if pos < 0:
                 raise SystemExit("KernelSU-Next patch_memory.c: no include insertion point")
-            s = s[:first_include] + uaccess_include + "\\n" + s[first_include:]
+            s = s[:pos] + uaccess_include + nl + s[pos:]
 
-    macro = """/* Linux 4.19 compatibility: copy_to_kernel_nofault was probe_kernel_write. */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-#define copy_to_kernel_nofault(dst, src, size) \\\\
-    probe_kernel_write((dst), (src), (size))
-#endif
-"""
+    macro_lines = [
+        "/* Linux 4.19 compatibility: copy_to_kernel_nofault was probe_kernel_write. */",
+        "#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)",
+        "#define copy_to_kernel_nofault(dst, src, size) " + chr(92),
+        "    probe_kernel_write((dst), (src), (size))",
+        "#endif",
+    ]
+    macro = nl.join(macro_lines) + nl
     if "#define copy_to_kernel_nofault(" not in s:
         version_include = "#include <linux/version.h>"
         if version_include not in s:
-            s = s.replace(uaccess_include, uaccess_include + "\\n" + version_include, 1)
-        s = s.replace(version_include, version_include + "\\n\\n" + macro, 1)
+            s = s.replace(uaccess_include, uaccess_include + nl + version_include, 1)
+        s = s.replace(version_include, version_include + nl + nl + macro, 1)
 
     if s.index(uaccess_include) > s.index("#define copy_to_kernel_nofault("):
         raise SystemExit("KernelSU-Next patch_memory.c: uaccess include must precede compatibility macro")
