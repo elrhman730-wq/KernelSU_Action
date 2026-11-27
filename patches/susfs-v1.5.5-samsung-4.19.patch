@@ -1,3 +1,7 @@
+diff --git a/fs/dcache.c b/fs/dcache.c
+index ade446681..28488d2de 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
 @@ -2200,6 +2203,11 @@ struct dentry *__d_lookup_rcu(const struct dentry *parent,
  				continue;
  			if (dentry_cmp(dentry, str, hashlen_len(hashlen)) != 0)
@@ -23,6 +27,11 @@
  		spin_lock(&dentry->d_lock);
  		if (dentry->d_parent != parent)
  			goto next;
+
+diff --git a/fs/namei.c b/fs/namei.c
+index 86a4364b1..1c2475fc5 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
 @@ -40,6 +40,9 @@
  #include <linux/init_task.h>
  #include <linux/uaccess.h>
@@ -259,6 +268,11 @@
  	restore_nameidata();
  	return filp;
  }
+
+diff --git a/fs/namespace.c b/fs/namespace.c
+index 3fea74683..0502d3edc 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
 @@ -152,6 +179,18 @@ static inline struct hlist_head *mp_hash(struct dentry *dentry)
  	return &mountpoint_hashtable[tmp & mp_hash_mask];
  }
@@ -503,6 +517,11 @@
 +	return false;
 +}
 +#endif
+
+diff --git a/fs/notify/fdinfo.c b/fs/notify/fdinfo.c
+index 74aeabbf0..d6a1eab90 100644
+--- a/fs/notify/fdinfo.c
++++ b/fs/notify/fdinfo.c
 @@ -13,6 +13,9 @@
  #include <linux/seq_file.h>
  #include <linux/proc_fs.h>
@@ -590,6 +609,11 @@
  		seq_printf(m, "inotify wd:%x ino:%lx sdev:%x mask:%x ignored_mask:0 ",
  			   inode_mark->wd, inode->i_ino, inode->i_sb->s_dev,
  			   inotify_mark_user_mask(mark));
+
+diff --git a/fs/overlayfs/inode.c b/fs/overlayfs/inode.c
+index 7f3787a6b..47f0a1488 100644
+--- a/fs/overlayfs/inode.c
++++ b/fs/overlayfs/inode.c
 @@ -156,6 +156,15 @@ int ovl_getattr(const struct path *path, struct kstat *stat,
  
  	metacopy_blocks = ovl_is_metacopy_dentry(dentry);
@@ -606,6 +630,11 @@
  	type = ovl_path_real(dentry, &realpath);
  	old_cred = ovl_override_creds(dentry->d_sb);
  	err = vfs_getattr(&realpath, stat, request_mask, flags);
+
+diff --git a/fs/overlayfs/readdir.c b/fs/overlayfs/readdir.c
+index 47710c1a8..a441cfbf2 100644
+--- a/fs/overlayfs/readdir.c
++++ b/fs/overlayfs/readdir.c
 @@ -895,7 +895,19 @@ static int ovl_dir_open(struct inode *inode, struct file *file)
  	if (!od)
  		return -ENOMEM;
@@ -626,6 +655,11 @@
  	realfile = ovl_path_open(&realpath, file->f_flags);
  	if (IS_ERR(realfile)) {
  		kfree(od);
+
+diff --git a/fs/overlayfs/super.c b/fs/overlayfs/super.c
+index 5ce71f60d..a54eae953 100644
+--- a/fs/overlayfs/super.c
++++ b/fs/overlayfs/super.c
 @@ -307,6 +307,18 @@ static int ovl_statfs(struct dentry *dentry, struct kstatfs *buf)
  	struct path path;
  	int err;
@@ -645,6 +679,11 @@
  	ovl_path_real(root_dentry, &path);
  
  	err = vfs_statfs(&path, buf);
+
+diff --git a/fs/proc/cmdline.c b/fs/proc/cmdline.c
+index fa762c5fb..c981cd698 100644
+--- a/fs/proc/cmdline.c
++++ b/fs/proc/cmdline.c
 @@ -4,8 +4,18 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -664,6 +703,11 @@
  	seq_puts(m, saved_command_line);
  	seq_putc(m, '\n');
  	return 0;
+
+diff --git a/fs/proc/fd.c b/fs/proc/fd.c
+index 253e50397..3df71ff14 100644
+--- a/fs/proc/fd.c
++++ b/fs/proc/fd.c
 @@ -12,6 +12,9 @@
  #include <linux/fs.h>
  
@@ -705,6 +749,11 @@
  
  	show_fd_locks(m, file, files);
  	if (seq_has_overflowed(m))
+
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index 98c3d7c43..2a38f8f8a 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
 @@ -353,6 +356,10 @@ static void show_vma_header_prefix(struct seq_file *m,
  	seq_putc(m, ' ');
  }
@@ -734,6 +783,11 @@
  		pgoff = ((loff_t)vma->vm_pgoff) << PAGE_SHIFT;
  	}
  
+
+diff --git a/fs/proc_namespace.c b/fs/proc_namespace.c
+index 273ee82d8..86bd6d140 100644
+--- a/fs/proc_namespace.c
++++ b/fs/proc_namespace.c
 @@ -12,6 +12,9 @@
  #include <linux/security.h>
  #include <linux/fs_struct.h>
@@ -780,6 +834,11 @@
  	/* device */
  	if (sb->s_op->show_devname) {
  		seq_puts(m, "device ");
+
+diff --git a/fs/readdir.c b/fs/readdir.c
+index 3c5ce8a0d..dd82d352c 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
 @@ -20,9 +20,15 @@
  #include <linux/syscalls.h>
  #include <linux/unistd.h>
@@ -844,6 +903,11 @@
  	d_ino = ino;
  	if (sizeof(d_ino) < sizeof(ino) && d_ino != ino) {
  		buf->error = -EOVERFLOW;
+
+diff --git a/fs/stat.c b/fs/stat.c
+index bf1239583..4b1e67db4 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
 @@ -17,10 +17,17 @@
  #include <linux/syscalls.h>
  #include <linux/pagemap.h>
@@ -880,6 +944,11 @@
  	stat->dev = inode->i_sb->s_dev;
  	stat->ino = inode->i_ino;
  	stat->mode = inode->i_mode;
+
+diff --git a/fs/statfs.c b/fs/statfs.c
+index 29786598c..e65f977f6 100644
+--- a/fs/statfs.c
++++ b/fs/statfs.c
 @@ -9,6 +9,10 @@
  #include <linux/security.h>
  #include <linux/uaccess.h>
@@ -963,6 +1032,12 @@
  	err = statfs_by_dentry(s->s_root, sbuf);
  	drop_super(s);
  	return err;
+
+diff --git a/fs/sus_su.c b/fs/sus_su.c
+new file mode 100644
+index 000000000..d140468d0
+--- /dev/null
++++ b/fs/sus_su.c
 @@ -0,0 +1,140 @@
 +#include <linux/module.h>
 +#include <linux/kernel.h>
@@ -1104,6 +1179,12 @@
 +    SUSFS_LOGI("'%s' unregistered\n", rand_drv_path);
 +    return 0;
 +}
+
+diff --git a/fs/susfs.c b/fs/susfs.c
+new file mode 100644
+index 000000000..2d9576899
+--- /dev/null
++++ b/fs/susfs.c
 @@ -0,0 +1,916 @@
 +#include <linux/version.h>
 +#include <linux/cred.h>
@@ -2021,6 +2102,11 @@
 +/* No module exit is needed becuase it should never be a loadable kernel module */
 +//void __init susfs_exit(void)
 +
+
+diff --git a/include/linux/mount.h b/include/linux/mount.h
+index ca388cc44..1b38bd0d6 100644
+--- a/include/linux/mount.h
++++ b/include/linux/mount.h
 @@ -73,7 +73,14 @@ struct vfsmount {
  	ANDROID_KABI_RESERVE(1);
  	ANDROID_KABI_RESERVE(2);
@@ -2036,6 +2122,12 @@
  } __randomize_layout;
  
  struct file; /* forward dec */
+
+diff --git a/include/linux/sus_su.h b/include/linux/sus_su.h
+new file mode 100644
+index 000000000..98e8f3b35
+--- /dev/null
++++ b/include/linux/sus_su.h
 @@ -0,0 +1,9 @@
 +#ifndef __KSU_H_SUS_SU
 +#define __KSU_H_SUS_SU
@@ -2046,6 +2138,12 @@
 +int sus_su_fifo_exit(int *maj_dev_num, char *drv_path);
 +
 +#endif
+
+diff --git a/include/linux/susfs.h b/include/linux/susfs.h
+new file mode 100644
+index 000000000..ef31283db
+--- /dev/null
++++ b/include/linux/susfs.h
 @@ -0,0 +1,186 @@
 +#ifndef KSU_SUSFS_H
 +#define KSU_SUSFS_H
@@ -2233,6 +2331,12 @@
 +void susfs_init(void);
 +
 +#endif
+
+diff --git a/include/linux/susfs_def.h b/include/linux/susfs_def.h
+new file mode 100644
+index 000000000..7442047d0
+--- /dev/null
++++ b/include/linux/susfs_def.h
 @@ -0,0 +1,62 @@
 +#ifndef KSU_SUSFS_DEF_H
 +#define KSU_SUSFS_DEF_H
@@ -2296,6 +2400,11 @@
 +#define DATA_ADB_NO_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT "/data/adb/susfs_no_auto_add_try_umount_for_bind_mount"
 +
 +#endif // #ifndef KSU_SUSFS_DEF_H
+
+diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
+index c34294c1c..cbcc30b13 100644
+--- a/kernel/kallsyms.c
++++ b/kernel/kallsyms.c
 @@ -668,8 +668,18 @@ static int s_show(struct seq_file *m, void *p)
  		seq_printf(m, "%px %c %s\t[%s]\n", value,
  			   type, iter->name, iter->module_name);
@@ -2315,6 +2424,11 @@
  	return 0;
  }
  
+
+diff --git a/kernel/sys.c b/kernel/sys.c
+index af80d0445..0d856825c 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
 @@ -1254,12 +1254,18 @@ static int override_release(char __user *release, size_t len)
  	return ret;
  }
@@ -2348,3 +2462,4 @@
  	error = security_task_prctl(option, arg2, arg3, arg4, arg5);
  	if (error != -ENOSYS)
  		return error;
+
