@@ -1,0 +1,67 @@
+name: A13VE KernelSU-Next + SUSFS 2.4.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - a13ve-ksun-legacy-fix
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a13ve-ksun-legacy-fix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build A13VE Linux 4.19.325
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      WORKSPACE: ${{ github.workspace }}
+      CONFIG_ENV: config.env
+    steps:
+      - name: Checkout build scripts
+        uses: actions/checkout@v4
+        with:
+          ref: a13ve-ksun-legacy-fix
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex gcc g++ git \
+            libelf-dev libncurses-dev libssl-dev lz4 python3 rsync unzip zip zstd
+
+      - name: Resolve and validate configuration
+        run: bash scripts/config.sh
+
+      - name: Fetch A13VE kernel source
+        run: bash scripts/source.sh
+
+      - name: Install KernelSU-Next Legacy
+        run: bash scripts/kernelsu.sh
+
+      - name: Apply SUSFS and kernel compatibility patches
+        run: bash scripts/patches.sh all
+
+      - name: Fetch toolchains
+        run: bash scripts/toolchain.sh
+
+      - name: Configure and compile kernel
+        run: bash scripts/build.sh all
+
+      - name: Package AnyKernel3
+        run: |
+          bash scripts/package.sh all
+          cd AnyKernel3
+          zip -qr "${WORKSPACE}/A13VE-KernelSU-Next-SUSFS-2.4.0.zip" .
+
+      - name: Upload flashable kernel
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: A13VE-KernelSU-Next-SUSFS-2.4.0
+          path: A13VE-KernelSU-Next-SUSFS-2.4.0.zip
+          if-no-files-found: error
+          retention-days: 14
