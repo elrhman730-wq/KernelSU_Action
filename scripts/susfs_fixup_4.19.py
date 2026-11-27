@@ -43,10 +43,10 @@ def insert_after_once(rel, anchor, addition, marker):
 
 # fs/Makefile: the source has extra fs_context objects after the vanilla 4.19
 # list, so place susfs.o after the complete obj-y list instead of line numbers.
-insert_after_once(
+replace_once(
     "fs/Makefile",
-    "fs_context.o fs_parser.o\n",
-    "\nobj-$(CONFIG_KSU_SUSFS) += susfs.o\n",
+    "ifeq ($(CONFIG_BLOCK),y)\n",
+    "obj-$(CONFIG_KSU_SUSFS) += susfs.o\n\nifeq ($(CONFIG_BLOCK),y)\n",
     "obj-$(CONFIG_KSU_SUSFS) += susfs.o",
 )
 
