@@ -179,6 +179,20 @@ def wlan_oid_unused_ps_mode(s):
         raise SystemExit("wlan_oid.c: expected apucPsMode declaration not found")
     return s
 
+
+def wlan_nic_tx_unused_rawtxs(s):
+    # pu4RawTxs is consumed only by DBGLOG_LIMITED; logging-off builds
+    # compile those callsites away, so preserve the pointer but annotate it.
+    old = "uint32_t *pu4RawTxs ="
+    new = "uint32_t *pu4RawTxs __maybe_unused ="
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("nic_tx.c: pu4RawTxs unused annotation failed")
+    if new not in s:
+        raise SystemExit("nic_tx.c: expected pu4RawTxs declaration not found")
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -205,6 +219,7 @@ edit("drivers/misc/mediatek/eccci/hif/ccci_hif_dpmaif.c", dpmaif_pointer_format)
 edit("drivers/kernelsu/hook/patch_memory.c", ksun_patch_memory)
 edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_oid.c", wlan_oid_unused_ps_mode)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/nic_tx.c", wlan_nic_tx_unused_rawtxs)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
