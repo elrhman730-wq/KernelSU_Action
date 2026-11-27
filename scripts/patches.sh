@@ -349,6 +349,9 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 		hooks)        hooks_patch_apply ;;
 		kpm)          kpm_patch_image "$2" ;;
 		all)
+			# Backport APIs already used by this Samsung 4.19 tree but missing
+			# their declarations/callback adapters in the vendor headers.
+			python3 "${REPO_ROOT}/scripts/kernel_4.19_compat.py" "$KERNEL_DIR"
 			# Order matters and this is the tested one (4.19 + SukiSU builtin
 			# + SUSFS 1.5.5, no rejects):
 			#   path_umount and the hook patches both key off textual anchors
