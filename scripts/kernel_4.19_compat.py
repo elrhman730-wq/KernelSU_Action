@@ -100,37 +100,19 @@ def mrdump_source(s):
     return s
 
 def ksun_patch_memory(s):
-    # KSUN legacy already defines the 4.19 alias in its file preamble, but
-    # places linux/uaccess.h later inside the ARM64 section.  Relocate the
-    # include before the alias so probe_kernel_write() is declared first.
-    if "copy_to_kernel_nofault(" not in s:
-        raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
-
-    nl = chr(10)
-    include = '#include <linux/uaccess.h>'
-    patch_header = '#include "patch_memory.h"'
-    macro_start = "// copy_to_kernel_nofault() was introduced in 5.8;"
-    macro_end = "#endif"
-
-    if macro_start not in s:
-        raise SystemExit("KernelSU-Next patch_memory.c: upstream compatibility block not found")
-
-    a = s.index(macro_start)
-    b = s.index(macro_end, a) + len(macro_end)
-    macro = s[a:b]
-    s = s[:a] + s[b:]
-    s = s.replace(include, "", 1) if include in s else s
-
-    if patch_header not in s:
-        raise SystemExit("KernelSU-Next patch_memory.c: patch_memory.h include not found")
-
-    preamble = patch_header + nl + include + nl + "#include <linux/version.h>" + nl + nl + macro
-    s = s.replace(patch_header, preamble, 1)
-
-    if s.index(include) > s.index(macro_start):
-        raise SystemExit("KernelSU-Next patch_memory.c: uaccess include ordering is invalid")
-    if "probe_kernel_write((dst), (src), (size))" not in s:
-        raise SystemExit("KernelSU-Next patch_memory.c: Linux 4.19 fallback is missing")
+    # Linux 4.19 exposes probe_kernel_write(), not copy_to_kernel_nofault().
+    # The old shim relied on a version.h macro that did not expand reliably
+    # in the Samsung vendor build. Call the native 4.19 API directly instead.
+    old_call = "ret = (int)copy_to_kernel_nofault(map, src, len);"
+    new_call = "ret = (int)probe_kernel_write(map, src, len);"
+    if old_call in s:
+        s = s.replace(old_call, new_call)
+    if old_call in s:
+        raise SystemExit("KernelSU-Next patch_memory.c: copy_to_kernel_nofault call remains")
+    if s.count(new_call) != 2:
+        raise SystemExit("KernelSU-Next patch_memory.c: expected both ARM64/x86_64 write paths")
+    if '#include "linux/uaccess.h"' not in s or "#include <linux/uaccess.h>" not in s:
+        raise SystemExit("KernelSU-Next patch_memory.c: uaccess headers missing for probe_kernel_write")
     return s
 
 def cred_source(s):
