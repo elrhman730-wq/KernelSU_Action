@@ -66,24 +66,19 @@ susfs_apply() {
 	local kp="${susfs_dir}/kernel_patches"
 	[ -d "$kp" ] || die "unexpected susfs4ksu layout: ${kp} missing"
 
-	# 1. Drop in the SUSFS sources. The non-GKI branches carry sus_su.c too.
-	info "copying SUSFS sources into the kernel tree"
-	cp -v "${kp}/fs/"*.c              "${KERNEL_DIR}/fs/"            2>/dev/null || true
-	cp -v "${kp}/include/linux/"*.h   "${KERNEL_DIR}/include/linux/" 2>/dev/null || true
+	# 1. The pinned Samsung fs_context patch carries the v1.5.5 kernel
+	#    sources as well as the VFS hooks. The generic kernel-4.19 patch is
+	#    based on vanilla VFS and does not match this vendor tree's backports.
+	local kernel_patch="${REPO_ROOT}/patches/susfs-v1.5.5-samsung-4.19.patch"
+	[ -f "$kernel_patch" ] || die "Samsung SUSFS patch missing: ${kernel_patch}"
 
-	# 2. Patch the kernel itself.
-	local kernel_patch="${kp}/50_add_susfs_in_${branch}.patch"
-	[ -f "$kernel_patch" ] || {
-		# Fall back to whatever 50_* patch the branch actually ships.
-		kernel_patch=$(find "$kp" -maxdepth 1 -name '50_add_susfs_in_*.patch' | head -n1)
-	}
-	[ -n "$kernel_patch" ] && [ -f "$kernel_patch" ] \
-		|| die "no 50_add_susfs_in_*.patch found in ${kp}"
-
+	# 2. Apply the clean hunks, then finish the small MTK/KDP-aware insertion
+	#    points. The fixup script validates every expected marker and refuses
+	#    to continue if this source tree differs from the reviewed baseline.
 	( cd "$KERNEL_DIR" && apply_patch "$kernel_patch" 1 ) \
-		|| die "the SUSFS kernel patch did not apply cleanly.
-       This usually means SUSFS_BRANCH does not match your kernel. Detected
-       kernel ${kver}, used branch '${branch}'."
+		|| die "the Samsung fs_context SUSFS v1.5.5 patch did not apply cleanly"
+	python3 "${REPO_ROOT}/scripts/susfs_fixup_4.19.py" "$KERNEL_DIR" \
+		|| die "the Samsung fs_context SUSFS v1.5.5 fixups failed"
 
 	# 3. Patch the KernelSU side -- but only when the variant does not already
 	#    ship SUSFS support. SukiSU-Ultra's 'builtin' branch, for instance,
