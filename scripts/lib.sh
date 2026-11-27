@@ -222,7 +222,14 @@ apply_patch() {
 		warn "$(basename "$patch") applied with fuzz; verify the result"
 		return 0
 	fi
-	warn "failed to apply $(basename "$patch")"
+	# Emit the exact failed files/hunks so a vendor-tree mismatch can be
+	# ported deliberately instead of guessing or applying a partial patch.
+	local diagnostic
+	diagnostic=$(mktemp)
+	patch -p"$strip" --dry-run --force --fuzz=3 --verbose <"$patch" >"$diagnostic" 2>&1 || true
+	warn "failed to apply $(basename "$patch"); verbose hunk diagnostics follow"
+	cat "$diagnostic" >&2
+	rm -f "$diagnostic"
 	return 1
 }
 
