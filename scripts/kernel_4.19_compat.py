@@ -165,6 +165,20 @@ def dpmaif_pointer_format(s):
             raise SystemExit("ccci_hif_dpmaif.c: expected debug pointer cast not found")
     return s
 
+
+def wlan_oid_unused_ps_mode(s):
+    # MediaTek's WLAN debug string table is referenced only by DBGLOG.
+    # When logging is compiled out, Clang diagnoses it as unused under Werror.
+    old = "const uint8_t *apucPsMode[Param_PowerModeMax] = {"
+    new = "const uint8_t *apucPsMode[Param_PowerModeMax] __maybe_unused = {"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("wlan_oid.c: apucPsMode unused annotation failed")
+    if new not in s:
+        raise SystemExit("wlan_oid.c: expected apucPsMode declaration not found")
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -190,6 +204,7 @@ edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_lib.c", wla
 edit("drivers/misc/mediatek/eccci/hif/ccci_hif_dpmaif.c", dpmaif_pointer_format)
 edit("drivers/kernelsu/hook/patch_memory.c", ksun_patch_memory)
 edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_oid.c", wlan_oid_unused_ps_mode)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
