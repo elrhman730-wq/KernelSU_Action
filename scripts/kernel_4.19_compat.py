@@ -103,14 +103,14 @@ def ksun_patch_memory(s):
     if "copy_to_kernel_nofault" not in s:
         raise SystemExit("KernelSU-Next patch_memory.c: expected API call not found")
 
-    # Ensure the legacy probe_kernel_write() declaration is visible before
-    # the compatibility macro is expanded on Linux 4.19.
+    # Linux 4.19 declares probe_kernel_write() in linux/uaccess.h.
     include_anchor = '#include "patch_memory.h"'
-    if '#include <linux/uaccess.h>' not in s:
+    uaccess_include = '#include <linux/uaccess.h>'
+    if uaccess_include not in s:
         if include_anchor not in s:
             raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
         s = s.replace(include_anchor,
-                      include_anchor + "\\n#include <linux/uaccess.h>", 1)
+                      include_anchor + "\n" + uaccess_include, 1)
 
     if "#define copy_to_kernel_nofault" not in s:
         compat = '''
@@ -122,9 +122,10 @@ def ksun_patch_memory(s):
     probe_kernel_write((dst), (src), (size))
 #endif
 '''
-        if include_anchor not in s:
-            raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
-        s = s.replace(include_anchor, include_anchor + compat, 1)
+        s = s.replace(uaccess_include, uaccess_include + compat, 1)
+
+    if s.index(uaccess_include) > s.index("#define copy_to_kernel_nofault"):
+        raise SystemExit("KernelSU-Next patch_memory.c: uaccess include must precede compatibility macro")
     return s
 
 def cred_source(s):
