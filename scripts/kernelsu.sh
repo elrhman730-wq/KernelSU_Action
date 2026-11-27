@@ -260,7 +260,13 @@ ksu_hook_configs() {
 		kconf_enable "$defconfig" CONFIG_KSU_TRACEPOINT_HOOK
 		;;
 	syscall)
-		kconf_enable "$defconfig" CONFIG_KSU_SYSCALL_HOOK
+		# KernelSU-Next legacy names this option KSU_SYSCALL_TABLE_HOOK.
+		# The old CONFIG_KSU_SYSCALL_HOOK symbol does not exist in its Kconfig.
+		# Keep manual mode disabled so the Kconfig choice can select the table hook.
+		[ "$variant" = "kernelsu-next" ] && kconf_disable "$defconfig" CONFIG_KSU_MANUAL_HOOK
+		kconf_enable "$defconfig" CONFIG_KSU_SYSCALL_TABLE_HOOK
+		kconf_enable "$defconfig" CONFIG_KALLSYMS
+		kconf_enable "$defconfig" CONFIG_KALLSYMS_ALL
 		;;
 	esac
 }
