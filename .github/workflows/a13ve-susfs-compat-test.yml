@@ -1,4 +1,4 @@
-name: A13VE SUSFS 2.4.0 compatibility probe
+name: A13VE SUSFS 1.5.5 kernel-4.19 compatibility test
 
 on:
   workflow_dispatch:
@@ -25,26 +25,30 @@ jobs:
       - name: Checkout exact A13VE kernel source
         run: |
           git clone --depth=1 --branch legion-mt6768 https://github.com/AlfCraft07/android_kernel_samsung_mt6768-k419.git kernel
+          test "$(sed -nE 's/^VERSION = ([0-9]+)$/\1/p' kernel/Makefile | head -1)" = "4"
 
-      - name: Fetch candidate SUSFS 2.4.0 patch
+      - name: Fetch official SUSFS kernel-4.19 branch
         run: |
-          curl -fL --retry 3 \
-            https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/mainline/Patches/Patch/susfs_patch_to_4.19.patch \
-            -o /tmp/susfs_patch_to_4.19.patch
-          grep -q 'SUSFS_VERSION "v2.4.0"' /tmp/susfs_patch_to_4.19.patch
-          echo "Confirmed candidate patch identifies itself as SUSFS v2.4.0"
-          grep '^diff --git ' /tmp/susfs_patch_to_4.19.patch
+          git clone --depth=1 --branch kernel-4.19 https://gitlab.com/simonpunk/susfs4ksu.git susfs4ksu
+          grep -q 'SUSFS_VERSION "v1.5.5"' susfs4ksu/kernel_patches/include/linux/susfs.h
+          test -s susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.19.patch
+          echo "Confirmed official non-GKI SUSFS v1.5.5 sources and kernel-4.19 patch."
 
-      - name: Test exact and fuzzy patch application
+      - name: Verify SukiSU Nova builtin SUSFS integration
+        run: |
+          git clone --depth=1 --branch builtin https://github.com/SukiSU-Nova/SukiSU-Nova.git sukisu
+          grep -q '^config KSU_SUSFS$' sukisu/kernel/Kconfig
+          grep -q '^config KPM$' sukisu/kernel/Kconfig
+          echo "SukiSU Nova builtin declares SUSFS and KPM Kconfig options."
+
+      - name: Test exact SUSFS kernel patch application
         run: |
           cd kernel
-          if git apply --check /tmp/susfs_patch_to_4.19.patch; then
-            echo "EXACT_APPLY=PASS" >> "$GITHUB_STEP_SUMMARY"
-          elif patch -p1 --dry-run --force --fuzz=3 < /tmp/susfs_patch_to_4.19.patch; then
-            echo "FUZZY_APPLY=PASS" >> "$GITHUB_STEP_SUMMARY"
-            echo "Patch can be applied with fuzz=3; next step is isolated compile validation."
-          else
-            echo "FUZZY_APPLY=FAIL" >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::Candidate SUSFS patch cannot be safely applied even with fuzz=3."
-            exit 1
-          fi
+          cp ../susfs4ksu/kernel_patches/fs/*.c fs/
+          cp ../susfs4ksu/kernel_patches/include/linux/*.h include/linux/
+          git apply --check ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.19.patch
+          git apply ../susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.19.patch
+          grep -q 'SUSFS_VERSION "v1.5.5"' include/linux/susfs.h
+          grep -q 'susfs.o' fs/Makefile
+          echo "EXACT_KERNEL_PATCH=PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "SUSFS_VERSION=v1.5.5" >> "$GITHUB_STEP_SUMMARY"
