@@ -6,7 +6,8 @@ set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 WORKSPACE=${WORKSPACE:?WORKSPACE must be set}
-KERNEL_DIR="${WORKSPACE}/android-kernel"
+KERNEL_CHECKOUT="${WORKSPACE}/android-kernel"
+KERNEL_DIR="$KERNEL_CHECKOUT"
 
 group "Cloning kernel source"
 info "${KERNEL_SOURCE} @ ${KERNEL_SOURCE_BRANCH}"
