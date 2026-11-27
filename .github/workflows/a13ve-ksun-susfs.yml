@@ -62,6 +62,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: A13VE-KernelSU-Next-SUSFS-v1.5.5
-          path: A13VE-KernelSU-Next-SUSFS-2.4.0.zip
+          path: A13VE-KernelSU-Next-SUSFS-v1.5.5.zip
           if-no-files-found: error
           retention-days: 14
