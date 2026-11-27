@@ -281,7 +281,7 @@ EOF
 
 # ============================================================== extra patches
 
-SUKISU_PATCH_REPO=${SUKISU_PATCH_REPO:-https://github.com/ShirkNeko/SukiSU_patch.git}
+SUKISU_PATCH_REPO=${SUKISU_PATCH_REPO:-https://github.com/SukiSU-Nova/SukiSU_patch.git}
 
 # Clone the shared patch/tool repo once, on demand.
 sukisu_patch_dir() {
