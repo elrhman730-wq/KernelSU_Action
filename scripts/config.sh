@@ -61,6 +61,7 @@ declare -A DEFAULTS=(
 	[ENABLE_SUSFS]="false"
 	[SUSFS_REPO]="https://gitlab.com/simonpunk/susfs4ksu.git"
 	[SUSFS_BRANCH]="auto"
+	[SUSFS_EXPECTED_VERSION]=""
 	[ENABLE_PATH_UMOUNT]="false"
 	[ENABLE_HIDE_STUFF]="false"
 	[ENABLE_KPM]="false"
