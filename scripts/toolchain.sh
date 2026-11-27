@@ -85,8 +85,26 @@ setup_clang() {
 			warn "master-kernel-build-2022/r450784e"
 		fi
 
-		fetch "${AOSP_CLANG_BASE}/+archive/refs/heads/${branch}/clang-${version}.tar.gz" \
-			"${WORKSPACE}/clang.tar.gz"
+		local clang_url="${AOSP_CLANG_BASE}/+archive/refs/heads/${branch}/clang-${version}.tar.gz"
+		local clang_archive="${WORKSPACE}/clang.tar.gz"
+		local attempt=1 max_attempts=5 delay=5
+		while :; do
+			rm -f "$clang_archive"
+			if curl -fSL --connect-timeout 30 --retry 2 --retry-delay 3 -o "$clang_archive" "$clang_url" \
+				&& [ -s "$clang_archive" ] \
+				&& gzip -t "$clang_archive" \
+				&& tar -tzf "$clang_archive" >/dev/null 2>&1; then
+				ok "Clang archive downloaded and integrity-checked"
+				break
+			fi
+			rm -f "$clang_archive"
+			if [ "$attempt" -ge "$max_attempts" ]; then
+				die "AOSP Clang archive remained incomplete or corrupt after ${max_attempts} attempts: ${clang_url}"
+			fi
+			warn "Clang archive failed integrity check (attempt ${attempt}/${max_attempts}); retrying in ${delay}s"
+			sleep "$delay"
+			attempt=$((attempt + 1)); delay=$((delay * 2))
+		done
 		extract_archive "${WORKSPACE}/clang.tar.gz" "$CLANG_DIR"
 	fi
 
