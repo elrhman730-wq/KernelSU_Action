@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: a13ve-kernelsu-next-susfs-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
