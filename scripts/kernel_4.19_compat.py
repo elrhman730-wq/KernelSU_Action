@@ -118,6 +118,20 @@ def ksun_patch_memory(s):
         raise SystemExit("KernelSU-Next patch_memory.c: cannot find include anchor")
     return s.replace(anchor, anchor + compat, 1)
 
+def cred_source(s):
+    # struct cred::usage is atomic_long_t in this vendor tree; the atomic_t
+    # helper is a type mismatch and fails Clang's -Werror check.
+    old = "atomic_inc_not_zero(&((struct cred *)cred)->usage)"
+    new = "atomic_long_inc_not_zero(&((struct cred *)cred)->usage)"
+    count = s.count(old)
+    if count:
+        s = s.replace(old, new)
+    if old in s:
+        raise SystemExit("kernel/cred.c: atomic_t credential refcount call remains")
+    if new not in s:
+        raise SystemExit("kernel/cred.c: expected credential refcount callsites not found")
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -144,4 +158,5 @@ edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
 edit("mm/rmap.c", rmap_source)
+edit("kernel/cred.c", cred_source)
 print("[compat] Linux 4.19 API compatibility checks passed")
