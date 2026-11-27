@@ -27,6 +27,12 @@ if [ -f "${KERNEL_DIR}/.git/shallow" ]; then
 	debug "kernel tree is shallow; that is fine for building"
 fi
 
+# Samsung vendor repositories may keep the actual Linux tree under kernel/.
+if [ ! -f "${KERNEL_DIR}/Makefile" ] && [ -f "${KERNEL_CHECKOUT}/kernel/Makefile" ]; then
+	KERNEL_DIR="${KERNEL_CHECKOUT}/kernel"
+	info "detected nested kernel tree: ${KERNEL_DIR}"
+fi
+
 KVER=$(kernel_version "$KERNEL_DIR") \
 	|| die "could not read VERSION/PATCHLEVEL from ${KERNEL_DIR}/Makefile -- is this a kernel tree?"
 export_env KERNEL_VERSION "$KVER"
