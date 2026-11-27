@@ -112,6 +112,10 @@ susfs_apply() {
 	local sv
 	sv=$(sed -nE 's/.*SUSFS_VERSION[[:space:]]+"([^"]+)".*/\1/p' \
 		"${KERNEL_DIR}/include/linux/susfs.h" 2>/dev/null | head -n1)
+	local expected=${SUSFS_EXPECTED_VERSION:-}
+	if [ -n "$expected" ] && [ "${sv:-unknown}" != "$expected" ]; then
+		die "SUSFS version mismatch: required ${expected}, found ${sv:-unknown}. Refusing to build an incorrectly labelled kernel."
+	fi
 	export_env SUSFS_VERSION "${sv:-unknown}"
 	export_env SUSFS_BRANCH_RESOLVED "$branch"
 	ok "SUSFS ${sv:-?} applied from branch ${branch}"
