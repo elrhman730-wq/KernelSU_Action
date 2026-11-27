@@ -206,6 +206,24 @@ def wlan_cmd_buf_unused_tc(s):
         raise SystemExit("cmd_buf.c: expected prTc declaration not found")
     return s
 
+
+def wlan_gl_kal_unused_debug_vars(s):
+    # These values are consumed only by debug logging macros. Keep the
+    # calculations/data available while allowing logging-disabled builds.
+    replacements = {
+        "uint8_t ucCurEcoVer = wlanGetEcoVersion(": "uint8_t ucCurEcoVer __maybe_unused = wlanGetEcoVersion(",
+        "char *pucBssSubType =": "char *pucBssSubType __maybe_unused =",
+        "struct WIFI_LINK_QUALITY_INFO *lq =": "struct WIFI_LINK_QUALITY_INFO *lq __maybe_unused =",
+    }
+    for old, new in replacements.items():
+        if old in s:
+            s = s.replace(old, new, 1)
+        if old in s:
+            raise SystemExit("gl_kal.c: unused debug variable annotation failed: " + old)
+        if new not in s:
+            raise SystemExit("gl_kal.c: expected declaration not found: " + old)
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -234,6 +252,7 @@ edit("drivers/media/v4l2-core/v4l2-mem2mem.c", v4l2_m2m)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_oid.c", wlan_oid_unused_ps_mode)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/nic_tx.c", wlan_nic_tx_unused_rawtxs)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/cmd_buf.c", wlan_cmd_buf_unused_tc)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_kal.c", wlan_gl_kal_unused_debug_vars)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
