@@ -271,8 +271,8 @@ def wlan_gl_rst_unused_result(s):
                     "\t(void)rst_L0_notify_step1();", 1)
     fn = fn.replace("\tfgResult = rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();",
                     "\t(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();", 1)
-    fn = fn.replace('DBGLOG(INIT, STATE, "[SER][L0] flow end, fgResult=%d\n", fgResult);',
-                    'DBGLOG(INIT, STATE, "[SER][L0] flow end\n");', 1)
+    fn = fn.replace(r'DBGLOG(INIT, STATE, "[SER][L0] flow end, fgResult=%d\n", fgResult);',
+                    r'DBGLOG(INIT, STATE, "[SER][L0] flow end\n");', 1)
     if "fgResult" in fn:
         raise SystemExit("gl_rst.c: reset result variable remains in reset function")
     if "(void)rst_L0_notify_step1();" not in fn or "(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();" not in fn:
@@ -291,11 +291,11 @@ def wlan_gl_cfg_scan_done_unused_status(s):
         raise SystemExit("gl_cfg80211.c: scan-done function end not found")
     fn = s[start:end]
     fn = fn.replace("\tuint32_t rStatus = WLAN_STATUS_SUCCESS;\n", "", 1)
-    fn = fn.replace('DBGLOG(QM, TRACE, "%s allocate skb failed:%x\n", __func__,\n\t\t       rStatus);',
-                    'DBGLOG(QM, TRACE, "%s allocate skb failed\n", __func__);', 1)
+    fn = fn.replace(r'DBGLOG(QM, TRACE, "%s allocate skb failed:%x\n", __func__,\n\t\t       rStatus);',
+                    r'DBGLOG(QM, TRACE, "%s allocate skb failed\n", __func__);', 1)
     if "rStatus" in fn:
         raise SystemExit("gl_cfg80211.c: scan-done logging-only status remains")
-    if 'allocate skb failed\n", __func__);' not in fn:
+    if r'allocate skb failed\n", __func__);' not in fn:
         raise SystemExit("gl_cfg80211.c: allocation failure log rewrite failed")
     return s[:start] + fn + s[end:]
 
