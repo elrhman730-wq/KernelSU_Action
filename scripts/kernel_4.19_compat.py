@@ -259,46 +259,46 @@ def imgsensor_s5k4hayx_void_prototype(s):
 
 
 def wlan_gl_rst_unused_result(s):
-    # fgResult is never part of reset control flow; it is only printed by
-    # DBGLOG, which disappears in production builds. Preserve both reset
-    # callbacks and discard their return values explicitly.
-    old_decl = "\\tu_int8_t fgResult = FALSE;\\n"
-    if old_decl in s:
-        s = s.replace(old_decl, "", 1)
-    s = s.replace("\\tfgResult = rst_L0_notify_step1();",
-                  "\\t(void)rst_L0_notify_step1();", 1)
-    s = s.replace("\\tfgResult = rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();",
-                  "\\t(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();", 1)
-    s = s.replace('DBGLOG(INIT, STATE, "[SER][L0] flow end, fgResult=%d\\\\n", fgResult);',
-                  'DBGLOG(INIT, STATE, "[SER][L0] flow end\\\\n");', 1)
-    if "fgResult" in s:
-        raise SystemExit("gl_rst.c: reset result variable still present")
-    if "(void)rst_L0_notify_step1();" not in s or "(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();" not in s:
+    # fgResult only fed a DBGLOG statement. Keep reset callbacks and their
+    # side effects, but explicitly discard their unused return values.
+    start = s.find("static void mtk_wifi_reset_main(")
+    end = s.find("\nstatic void mtk_wifi_reset(", start)
+    if start < 0 or end < 0:
+        raise SystemExit("gl_rst.c: cannot isolate mtk_wifi_reset_main")
+    fn = s[start:end]
+    fn = fn.replace("\tu_int8_t fgResult = FALSE;\n", "", 1)
+    fn = fn.replace("\tfgResult = rst_L0_notify_step1();",
+                    "\t(void)rst_L0_notify_step1();", 1)
+    fn = fn.replace("\tfgResult = rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();",
+                    "\t(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();", 1)
+    fn = fn.replace('DBGLOG(INIT, STATE, "[SER][L0] flow end, fgResult=%d\n", fgResult);',
+                    'DBGLOG(INIT, STATE, "[SER][L0] flow end\n");', 1)
+    if "fgResult" in fn:
+        raise SystemExit("gl_rst.c: reset result variable remains in reset function")
+    if "(void)rst_L0_notify_step1();" not in fn or "(void)rst->prGlueInfo->prAdapter->chip_info->rst_L0_notify_step2();" not in fn:
         raise SystemExit("gl_rst.c: reset callback preservation check failed")
-    return s
+    return s[:start] + fn + s[end:]
 
 
 def wlan_gl_cfg_scan_done_unused_status(s):
-    # rStatus is initialized to SUCCESS and only passed to DBGLOG on an
-    # allocation failure. Do not retain a fake status value solely for logs.
-    old = "\\tuint32_t rStatus = WLAN_STATUS_SUCCESS;\\n"
-    new = ""
+    # rStatus is a constant success value used only in a debug log. Avoid
+    # keeping a production-build local solely for a compiled-out DBGLOG.
     start = s.find("mtk_cfg80211_testmode_get_scan_done(")
     if start < 0:
         raise SystemExit("gl_cfg80211.c: scan-done function not found")
-    end = s.find("\\n}", start)
+    end = s.find("\n}", start)
     if end < 0:
         raise SystemExit("gl_cfg80211.c: scan-done function end not found")
     fn = s[start:end]
-    if old in fn:
-        fn = fn.replace(old, new, 1)
-    fn = fn.replace('DBGLOG(QM, TRACE, "%s allocate skb failed:%x\\\\n", __func__,\\n\\t\\t       rStatus);',
-                    'DBGLOG(QM, TRACE, "%s allocate skb failed\\\\n", __func__);', 1)
+    fn = fn.replace("\tuint32_t rStatus = WLAN_STATUS_SUCCESS;\n", "", 1)
+    fn = fn.replace('DBGLOG(QM, TRACE, "%s allocate skb failed:%x\n", __func__,\n\t\t       rStatus);',
+                    'DBGLOG(QM, TRACE, "%s allocate skb failed\n", __func__);', 1)
     if "rStatus" in fn:
         raise SystemExit("gl_cfg80211.c: scan-done logging-only status remains")
-    if 'allocate skb failed\\\\n", __func__);' not in fn:
+    if 'allocate skb failed\n", __func__);' not in fn:
         raise SystemExit("gl_cfg80211.c: allocation failure log rewrite failed")
     return s[:start] + fn + s[end:]
+
 
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
