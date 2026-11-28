@@ -243,6 +243,20 @@ def wlan_gl_wext_unused_debug_names(s):
             raise SystemExit("gl_wext_priv.c: expected debug label declaration not found: " + old)
     return s
 
+
+def imgsensor_s5k4hayx_void_prototype(s):
+    # Clang treats an empty parameter list as an old-style, unspecified
+    # prototype under -Wstrict-prototypes. This function takes no arguments.
+    old = "void s5k4hayx_otp_off_setting()"
+    new = "void s5k4hayx_otp_off_setting(void)"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("s5k4hayxmipiraw_Sensor.c: prototype correction failed")
+    if new not in s:
+        raise SystemExit("s5k4hayxmipiraw_Sensor.c: expected OTP function definition not found")
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -273,6 +287,7 @@ edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/nic_tx.c", wlan_nic
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/cmd_buf.c", wlan_cmd_buf_unused_tc)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_kal.c", wlan_gl_kal_unused_debug_vars)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_wext_priv.c", wlan_gl_wext_unused_debug_names)
+edit("drivers/misc/mediatek/imgsensor/src/common/v1/s5k4hayx_mipi_raw/s5k4hayxmipiraw_Sensor.c", imgsensor_s5k4hayx_void_prototype)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
