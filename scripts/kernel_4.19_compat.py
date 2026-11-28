@@ -315,6 +315,21 @@ def wlan_gl_cfg_scan_done_unused_status(s):
     return s[:start] + fn + s[end:]
 
 
+def wlan_remove_debug_disable_build_flag(s):
+    # The upstream gen4m Makefile passes DBG_DISABLE_ALL_LOG=1 on the
+    # compiler command line, while include/debug.h defines the same macro.
+    # Remove the redundant command-line definition; debug.h is the single
+    # source of truth and will set the driver's DBGLOG state to enabled.
+    old = "ccflags-y += -DDBG_DISABLE_ALL_LOG=1"
+    if old in s:
+        s = s.replace(old, "# DBG_DISABLE_ALL_LOG is controlled by include/debug.h.", 1)
+    if "-DDBG_DISABLE_ALL_LOG" in s:
+        raise SystemExit("gen4m/Makefile: conflicting DBG_DISABLE_ALL_LOG compiler flag remains")
+    if "DBG_DISABLE_ALL_LOG is controlled by include/debug.h." not in s:
+        raise SystemExit("gen4m/Makefile: expected debug-disable compiler flag not found")
+    return s
+
+
 def wlan_enable_debug_logging(s):
     # MediaTek gen4m hard-disables every DBGLOG macro in this header.
     # Enable the driver's own runtime-filtered logging without globally
@@ -378,6 +393,7 @@ edit("drivers/misc/mediatek/imgsensor/src/common/v1/s5k4hayx_mipi_raw/s5k4hayxmi
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_rst.c", wlan_gl_rst_unused_result)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_cfg80211.c", wlan_gl_cfg_scan_done_unused_status)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_sys.c", wlan_gl_sys_macaddr_sscanf)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/Makefile", wlan_remove_debug_disable_build_flag)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/include/debug.h", wlan_enable_debug_logging)
 
 edit("include/linux/pid.h", pid_header)
