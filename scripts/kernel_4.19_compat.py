@@ -224,6 +224,25 @@ def wlan_gl_kal_unused_debug_vars(s):
             raise SystemExit("gl_kal.c: expected declaration not found: " + old)
     return s
 
+
+def wlan_gl_wext_unused_debug_names(s):
+    # These protocol/family labels are referenced only by DBGLOG. Preserve
+    # the diagnostic strings while supporting builds with WLAN logging off.
+    replacements = {
+        'int8_t *aucIp[2] = {"IPv4", "IPv6"};':
+            'int8_t *aucIp[2] __maybe_unused = {"IPv4", "IPv6"};',
+        'int8_t *aucProto[2] = {"UDP", "TCP"};':
+            'int8_t *aucProto[2] __maybe_unused = {"UDP", "TCP"};',
+    }
+    for old, new in replacements.items():
+        if old in s:
+            s = s.replace(old, new, 1)
+        if old in s:
+            raise SystemExit("gl_wext_priv.c: unused debug label annotation failed: " + old)
+        if new not in s:
+            raise SystemExit("gl_wext_priv.c: expected debug label declaration not found: " + old)
+    return s
+
 def v4l2_m2m(s):
     old = """struct video_device *vdev = video_devdata(file);
 \tstruct vb2_queue *vq;
@@ -253,6 +272,7 @@ edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/common/wlan_oid.c", wla
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/nic_tx.c", wlan_nic_tx_unused_rawtxs)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/nic/cmd_buf.c", wlan_cmd_buf_unused_tc)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_kal.c", wlan_gl_kal_unused_debug_vars)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_wext_priv.c", wlan_gl_wext_unused_debug_names)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
