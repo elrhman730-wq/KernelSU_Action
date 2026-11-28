@@ -314,6 +314,21 @@ def wlan_gl_cfg_scan_done_unused_status(s):
         raise SystemExit("gl_cfg80211.c: allocation failure diagnostic was lost")
     return s[:start] + fn + s[end:]
 
+
+def wlan_enable_debug_logging(s):
+    # MediaTek gen4m hard-disables every DBGLOG macro in this header.
+    # Enable the driver's own runtime-filtered logging without globally
+    # enabling unrelated kernel debug facilities.
+    old = "#define DBG_DISABLE_ALL_LOG             1"
+    new = "#define DBG_DISABLE_ALL_LOG             0"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("WLAN debug.h: global DBGLOG disable remains")
+    if new not in s:
+        raise SystemExit("WLAN debug.h: expected DBG_DISABLE_ALL_LOG definition not found")
+    return s
+
 def wlan_gl_sys_macaddr_sscanf(s):
     # aucMacAddrOverride is an 18-byte array: 17 MAC characters plus NUL.
     # %18s may write 19 bytes including the terminator; %17s is the
@@ -363,6 +378,7 @@ edit("drivers/misc/mediatek/imgsensor/src/common/v1/s5k4hayx_mipi_raw/s5k4hayxmi
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_rst.c", wlan_gl_rst_unused_result)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_cfg80211.c", wlan_gl_cfg_scan_done_unused_status)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_sys.c", wlan_gl_sys_macaddr_sscanf)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/include/debug.h", wlan_enable_debug_logging)
 
 edit("include/linux/pid.h", pid_header)
 edit("include/linux/fscrypt.h", fscrypt_header)
