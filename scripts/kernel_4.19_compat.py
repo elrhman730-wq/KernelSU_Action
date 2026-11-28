@@ -315,6 +315,20 @@ def wlan_gl_cfg_scan_done_unused_status(s):
     return s[:start] + fn + s[end:]
 
 
+
+def wlan_country_code_null_comparison(s):
+    # u2CountryCode is a 16-bit numeric country code, not a pointer.
+    # Comparing it with NULL triggers Clang's pointer-to-integer cast error.
+    old = "if (prAdapter->rWifiVar.u2CountryCode != (uint16_t)NULL) {"
+    new = "if (prAdapter->rWifiVar.u2CountryCode != 0) {"
+    if old in s:
+        s = s.replace(old, new, 1)
+    if old in s:
+        raise SystemExit("rlm_domain.c: invalid NULL comparison remains")
+    if new not in s:
+        raise SystemExit("rlm_domain.c: expected country-code comparison not found")
+    return s
+
 def wlan_remove_debug_disable_build_flag(s):
     # The upstream gen4m Makefile passes DBG_DISABLE_ALL_LOG=1 on the
     # compiler command line, while include/debug.h defines the same macro.
@@ -393,6 +407,7 @@ edit("drivers/misc/mediatek/imgsensor/src/common/v1/s5k4hayx_mipi_raw/s5k4hayxmi
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_rst.c", wlan_gl_rst_unused_result)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_cfg80211.c", wlan_gl_cfg_scan_done_unused_status)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/os/linux/gl_sys.c", wlan_gl_sys_macaddr_sscanf)
+edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/mgmt/rlm_domain.c", wlan_country_code_null_comparison)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/Makefile", wlan_remove_debug_disable_build_flag)
 edit("drivers/misc/mediatek/connectivity/wlan/core/gen4m/include/debug.h", wlan_enable_debug_logging)
 
