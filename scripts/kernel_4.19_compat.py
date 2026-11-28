@@ -279,3 +279,5 @@ edit("include/linux/fscrypt.h", fscrypt_header)
 edit("mm/rmap.c", rmap_source)
 edit("kernel/cred.c", cred_source)
 print("[compat] Linux 4.19 API compatibility checks passed")
+
+# Fresh build trigger: rerun A13VE KernelSU-Next Legacy + SUSFS validation.
