@@ -283,38 +283,33 @@ def wlan_gl_rst_unused_result(s):
 
 def wlan_gl_cfg_scan_done_unused_status(s):
     # rStatus is a constant success value used only in the allocation-failure
-    # debug message. The vendor source wraps the DBGLOG arguments across lines,
-    # so use whitespace-tolerant matching instead of a brittle exact string.
+    # debug message. The vendor source wraps DBGLOG arguments across lines.
     start = s.find("mtk_cfg80211_testmode_get_scan_done(")
     if start < 0:
         raise SystemExit("gl_cfg80211.c: scan-done function not found")
-    end = s.find("\\n}", start)
+    end = s.find("\n}", start)
     if end < 0:
         raise SystemExit("gl_cfg80211.c: scan-done function end not found")
     fn = s[start:end]
 
     fn, decl_count = re.subn(
-        r"^[ \\t]*uint32_t rStatus = WLAN_STATUS_SUCCESS;[ \\t]*\\n",
+        r"^[ \t]*uint32_t rStatus = WLAN_STATUS_SUCCESS;[ \t]*\n",
         "",
         fn,
         count=1,
         flags=re.MULTILINE,
     )
-    if decl_count != 1:
-        if "uint32_t rStatus = WLAN_STATUS_SUCCESS;" in fn:
-            raise SystemExit("gl_cfg80211.c: could not remove scan-done rStatus declaration")
-        # Idempotent when the declaration was removed by an earlier run.
+    if decl_count == 0 and "uint32_t rStatus = WLAN_STATUS_SUCCESS;" in fn:
+        raise SystemExit("gl_cfg80211.c: could not remove scan-done rStatus declaration")
 
     fn, log_count = re.subn(
-        r'DBGLOG\\(QM, TRACE,\\s*"%s allocate skb failed:%x\\\\n",\\s*__func__,\\s*rStatus\\);',
-        r'DBGLOG(QM, TRACE, "%s allocate skb failed\\\\n", __func__);',
+        r'DBGLOG\(QM, TRACE,\s*"%s allocate skb failed:%x\\n",\s*__func__,\s*rStatus\);',
+        r'DBGLOG(QM, TRACE, "%s allocate skb failed\\n", __func__);',
         fn,
         count=1,
     )
-    if log_count == 0 and "rStatus" in fn:
-        raise SystemExit("gl_cfg80211.c: scan-done logging-only status remains")
     if "rStatus" in fn:
-        raise SystemExit("gl_cfg80211.c: unexpected rStatus reference remains in scan-done function")
+        raise SystemExit("gl_cfg80211.c: scan-done logging-only status remains")
     if "allocate skb failed" not in fn:
         raise SystemExit("gl_cfg80211.c: allocation failure diagnostic was lost")
     return s[:start] + fn + s[end:]
